@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School EVM - AI Hand Gesture Voting</title>
+  
+  <!-- Playful & Professional Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- MediaPipe Hands & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  
+  <!-- Canvas Confetti for celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Notification / Status Banner -->
+  <div id="status-banner" class="status-banner">
+    <div class="status-left">
+      <span class="status-dot online" id="sync-indicator-dot"></span>
+      <span id="sync-indicator-text">Online & Synced</span>
+    </div>
+    <div class="status-right" id="admin-shortcut-container">
+      <button id="admin-login-btn" class="btn btn-sm btn-glass">Organizer Login</button>
+      <button id="admin-dashboard-btn" class="btn btn-sm btn-primary hide">Admin Dashboard</button>
+    </div>
+  </div>
+
+  <main id="app-container">
+    
+    <!-- ==================== SCREEN 1: LOGIN & REGISTRATION ==================== -->
+    <section id="screen-login" class="screen hide">
+      <div class="card login-card animate-bounce-in">
+        <div class="card-header">
+          <div class="evm-badge">EVM Setup Wizard</div>
+          <h2>Organizer Portal</h2>
+          <p class="subtitle">Set up the election and secure the database</p>
+          
+          <!-- Tabs for Login / Register Toggle -->
+          <div class="wizard-toggle-tabs">
+            <button id="tab-toggle-register" class="tab-toggle active">📝 Register Election</button>
+            <button id="tab-toggle-login" class="tab-toggle">🔒 Admin Login</button>
+          </div>
+        </div>
+
+        <!-- FORM: Register Election -->
+        <form id="register-form" class="wizard-form">
+          <div class="form-group">
+            <label for="reg-username">Set Admin Username</label>
+            <input type="text" id="reg-username" required value="admin">
+          </div>
+          <div class="form-group">
+            <label for="reg-password">Set Admin Password</label>
+            <input type="password" id="reg-password" required placeholder="Choose a password">
+          </div>
+          <div class="form-group">
+            <label for="reg-election-title-init">Election Title</label>
+            <input type="text" id="reg-election-title-init" required placeholder="e.g. School Council Election 2026">
+          </div>
+          <div class="form-group">
+            <label for="reg-election-org-init">Organization / School Name</label>
+            <input type="text" id="reg-election-org-init" required placeholder="e.g. Greenwoods High School">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="reg-election-date-init">Election Date</label>
+              <input type="date" id="reg-election-date-init" required>
+            </div>
+            <div class="form-group">
+              <label for="reg-election-venue-init">Venue</label>
+              <input type="text" id="reg-election-venue-init" required placeholder="e.g. Main Hall">
+            </div>
+          </div>
+          <div class="error-msg hide" id="register-error">Please fill in all details.</div>
+          <button type="submit" class="btn btn-block btn-primary">Save & Continue to Positions →</button>
+        </form>
+
+        <!-- FORM: Organizer Login -->
+        <form id="login-form" class="wizard-form hide">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter username" required value="admin">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" required>
+          </div>
+          <div class="error-msg hide" id="login-error">Invalid username or password.</div>
+          <button type="submit" class="btn btn-block btn-primary">Login & Go to Setup</button>
+        </form>
+
+        <div class="card-footer">
+          <button id="back-to-vote-btn" class="btn btn-link">← Go to Voting Screen</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 2: WIZARD STEP 1 - POSITIONS ==================== -->
+    <section id="screen-wizard-positions" class="screen hide">
+      <div class="wizard-card animate-scale-up">
+        <div class="wizard-progress-header">
+          <div class="progress-bar-wizard"><div class="progress-fill-wizard" style="width: 50%"></div></div>
+          <div class="wizard-step-indicator">Step 1 of 2: Define Positions</div>
+        </div>
+        
+        <h2>Define Election Positions</h2>
+        <p class="wizard-subtitle">Add the roles or positions children will vote for (e.g. Head Boy, Head Girl, Sports Captain)</p>
+        
+        <div class="wizard-positions-list" id="wizard-positions-inputs-container">
+          <!-- Dynamically added position rows -->
+        </div>
+
+        <button id="wizard-add-position-btn" class="btn btn-glass">+ Add Another Position</button>
+        
+        <div class="wizard-actions mt-4">
+          <button id="wizard-positions-back-btn" class="btn btn-outline">← Back</button>
+          <button id="wizard-positions-next-btn" class="btn btn-primary">Next: Register Candidates →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 3: WIZARD STEP 2 - CANDIDATES ==================== -->
+    <section id="screen-wizard-candidates" class="screen hide">
+      <div class="wizard-card wizard-card-large animate-scale-up">
+        <div class="wizard-progress-header">
+          <div class="progress-bar-wizard"><div class="progress-fill-wizard" style="width: 100%"></div></div>
+          <div class="wizard-step-indicator">Step 2 of 2: Register Candidates</div>
+        </div>
+        
+        <h2>Register Candidates (Participating Children)</h2>
+        <p class="wizard-subtitle">For each position, list the children participating in the election (Max 6 per position)</p>
+        
+        <div class="wizard-candidates-grid-setup" id="wizard-candidates-cards-container">
+          <!-- Dynamically populated positions with candidate inputs -->
+        </div>
+
+        <div class="wizard-actions mt-4">
+          <button id="wizard-candidates-back-btn" class="btn btn-outline">← Back to Positions</button>
+          <button id="wizard-launch-btn" class="btn btn-success pulse">Launch Election 🚀</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 4: ADMIN DASHBOARD ==================== -->
+    <section id="screen-admin" class="screen hide">
+      <div class="admin-container animate-fade-in">
+        <!-- Sidebar Navigation -->
+        <aside class="admin-sidebar">
+          <div class="sidebar-header">
+            <div class="logo-box">
+              <span class="logo-icon">🗳️</span>
+              <div>
+                <h3>EVM Admin</h3>
+                <span id="active-organizer-lbl">Logged in as admin</span>
+              </div>
+            </div>
+          </div>
+          <nav class="sidebar-nav">
+            <button class="nav-item active" data-tab="tab-results">📈 Live Results</button>
+            <button class="nav-item" data-tab="tab-setup">🛠️ Election Setup</button>
+            <button class="nav-item" data-tab="tab-logs">📋 Vote Log & Sync</button>
+            <button class="nav-item" data-tab="tab-settings">⚙️ System Settings</button>
+          </nav>
+          <div class="sidebar-footer">
+            <button id="start-voting-mode-btn" class="btn btn-block btn-success">🟢 Launch Voting Screen</button>
+            <button id="admin-reset-btn" class="btn btn-block btn-danger btn-outline">🔁 Reset Data</button>
+            <button id="admin-logout-btn" class="btn btn-block btn-danger btn-outline">🚪 Logout Admin</button>
+          </div>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <div class="admin-main">
+          
+          <!-- TAB: Live Results -->
+          <div id="tab-results" class="tab-content">
+            <div class="admin-header">
+              <div>
+                <h2>Live Results Dashboard</h2>
+                <p>Real-time analytics for the school election</p>
+              </div>
+              <div class="actions-group">
+                <button id="share-results-btn" class="btn btn-outline btn-sm">🔗 Share</button>
+                <button id="email-results-btn" class="btn btn-outline btn-sm">📧 Email</button>
+                <button id="print-results-btn" class="btn btn-primary btn-sm">🖨️ Print Report</button>
+              </div>
+            </div>
+            
+            <div class="stats-cards-grid">
+              <div class="stat-card">
+                <span class="stat-icon">📥</span>
+                <div>
+                  <div class="stat-num" id="stat-total-votes">0</div>
+                  <div class="stat-label">Total Votes Cast</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <span class="stat-icon" id="stat-sync-icon">☁️</span>
+                <div>
+                  <div class="stat-num" id="stat-synced-votes">0</div>
+                  <div class="stat-label">Synced to Cloud</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <span class="stat-icon">⚠️</span>
+                <div>
+                  <div class="stat-num" id="stat-pending-votes">0</div>
+                  <div class="stat-label">Offline Pending</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Election Categories Results Grid -->
+            <div id="results-categories-container" class="results-grid">
+              <!-- Dynamically populated Category results -->
+            </div>
+          </div>
+
+          <!-- TAB: Election Setup -->
+          <div id="tab-setup" class="tab-content hide">
+            <div class="admin-header">
+              <div>
+                <h2>Election Setup</h2>
+                <p>Modify active categories and register participants</p>
+              </div>
+              <button id="add-category-btn" class="btn btn-primary btn-sm">+ Add Category</button>
+            </div>
+
+            <!-- Registration metadata edit card -->
+            <div class="setup-registration-card">
+              <div class="setup-registration-header">
+                <h3>Election Details</h3>
+                <button id="save-election-registration-btn" class="btn btn-sm btn-primary">Save Details</button>
+              </div>
+              <div class="setup-registration-grid">
+                <div class="form-group"><input id="reg-election-title" type="text" placeholder="Election Title"></div>
+                <div class="form-group"><input id="reg-election-organization" type="text" placeholder="School/Organization"></div>
+                <div class="form-group"><input id="reg-election-organizer" type="text" placeholder="Organizer Name"></div>
+                <div class="form-group"><input id="reg-election-date" type="date"></div>
+                <div class="form-group"><input id="reg-election-venue" type="text" placeholder="Venue/Location"></div>
+              </div>
+            </div>
+
+            <div class="setup-summary-grid">
+              <div class="summary-stat-card">
+                <span class="summary-stat-label">Total Positions</span>
+                <span class="summary-stat-value" id="setup-total-positions">0</span>
+              </div>
+              <div class="summary-stat-card">
+                <span class="summary-stat-label">Total Participants</span>
+                <span class="summary-stat-value" id="setup-total-participants">0</span>
+              </div>
+            </div>
+            
+            <!-- Category Edit Container -->
+            <div id="categories-editor-container" class="setup-grid">
+              <!-- Dynamically populated categories editors -->
+            </div>
+          </div>
+
+          <!-- TAB: Vote Log & Sync -->
+          <div id="tab-logs" class="tab-content hide">
+            <div class="admin-header">
+              <div>
+                <h2>Vote Log & Synchronization</h2>
+                <p>Inspect raw records and verify cloud synchronization status</p>
+              </div>
+              <div class="actions-group">
+                <button id="sync-now-btn" class="btn btn-primary btn-sm">🔄 Sync Now</button>
+                <button id="export-csv-btn" class="btn btn-outline btn-sm">📥 Export Backup CSV</button>
+                <button id="clear-database-btn" class="btn btn-danger btn-outline btn-sm">⚠️ Reset Data</button>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table class="votes-table">
+                <thead>
+                  <tr>
+                    <th>Vote ID</th>
+                    <th>Date & Time</th>
+                    <th>Category</th>
+                    <th>Candidate</th>
+                    <th>Organizer</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="votes-log-table-body">
+                  <!-- Dynamically populated vote logs -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB: System Settings -->
+          <div id="tab-settings" class="tab-content hide">
+            <div class="admin-header">
+              <div>
+                <h2>System Settings</h2>
+                <p>Configure security and cloud integration endpoints</p>
+              </div>
+            </div>
+
+            <div class="settings-form-container">
+              <div class="settings-card">
+                <h3>☁️ Google Sheets Sync Integration</h3>
+                <p class="settings-description">
+                  Deploy the Apps Script provided in <code>google_script.js</code> on your Google Drive, then paste the Web App URL below to automatically stream votes to your Google Sheet in real-time.
+                </p>
+                <div class="form-group">
+                  <label for="settings-sheets-url">Google Apps Script Web App URL</label>
+                  <input type="url" id="settings-sheets-url" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+                <button id="save-sheets-url-btn" class="btn btn-primary btn-sm">Save URL</button>
+                <button id="test-sheets-connection-btn" class="btn btn-outline btn-sm">🧪 Test Connection</button>
+                <span id="test-connection-status" class="test-status"></span>
+              </div>
+
+              <div class="settings-card mt-4">
+                <h3>🔒 Administrator Password</h3>
+                <p class="settings-description">Update the login password for the organizer profile.</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="settings-current-password">Current Password</label>
+                    <input type="password" id="settings-current-password">
+                  </div>
+                  <div class="form-group">
+                    <label for="settings-new-password">New Password</label>
+                    <input type="password" id="settings-new-password">
+                  </div>
+                </div>
+                <button id="save-password-btn" class="btn btn-primary btn-sm">Update Password</button>
+                <span id="save-password-status" class="test-status"></span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 5: VOTER WELCOME ==================== -->
+    <section id="screen-welcome" class="screen hide">
+      <div class="welcome-box animate-scale-up">
+        <div class="welcome-top-banner">
+          <div class="welcome-logo-badge">
+            <img src="All_Logo.png" alt="School Logo">
+          </div>
+          <div>
+            <div class="badge-accent" id="welcome-election-badge">✨ SCHOOL ELECTION 2026 ✨</div>
+            <h1 class="school-name-highlight">ST. JOSEPH'S HIGH SCHOOL</h1>
+          </div>
+        </div>
+
+        <p class="welcome-subtitle">Your voice matters. Let's cast your secret vote in a few simple steps!</p>
+
+        <div class="welcome-election-summary">
+          <span class="summary-pill" id="welcome-positions-count">Positions: 0</span>
+          <span class="summary-pill" id="welcome-participants-count">Participants: 0</span>
+        </div>
+        
+        <div class="welcome-graphics">
+          <div class="graphic-item animate-bounce">
+            <span class="emoji">☝️</span>
+            <p>1. Show Fingers</p>
+          </div>
+          <div class="graphic-item animate-bounce delay-1">
+            <span class="emoji">⏳</span>
+            <p>2. Hold 1.5 Seconds</p>
+          </div>
+          <div class="graphic-item animate-bounce delay-2">
+            <span class="emoji">🎉</span>
+            <p>3. Vote Done!</p>
+          </div>
+        </div>
+
+        <button id="begin-voting-btn" class="btn btn-lg btn-success pulse">Start Voting! 🚀</button>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 6: ACTIVE VOTING ==================== -->
+    <section id="screen-voting" class="screen hide">
+      <div class="voting-layout">
+        
+        <!-- Left Side: Interactive Candidates Panel -->
+        <div class="voting-candidates-section">
+          <div class="voting-header">
+            <span class="category-indicator" id="voting-category-name">HEAD BOY</span>
+            <span class="voting-progress-dot" id="voting-progress-fraction">Category 1 of 4</span>
+          </div>
+
+          <h2 class="voting-instruction" id="voting-instruction-text">Show 1, 2, 3, 4, or 5 fingers to choose your vote!</h2>
+
+          <div class="finger-guide-strip" aria-label="Finger guide for voting">
+            <div class="finger-guide-pill"><span>1</span><small>Finger</small></div>
+            <div class="finger-guide-pill"><span>2</span><small>Fingers</small></div>
+            <div class="finger-guide-pill"><span>3</span><small>Fingers</small></div>
+            <div class="finger-guide-pill"><span>4</span><small>Fingers</small></div>
+            <div class="finger-guide-pill"><span>5</span><small>Fingers</small></div>
+          </div>
+
+          <!-- Candidates Grid (1-6 candidates) -->
+          <div id="voting-candidates-grid" class="voting-candidates-grid">
+            <!-- Dynamically populated candidate cards -->
+          </div>
+        </div>
+
+        <!-- Right Side: AI Camera HUD -->
+        <div class="voting-camera-section">
+          <div class="camera-card">
+            <div class="camera-status" id="camera-status-indicator">
+              <span class="pulse-red-dot"></span>
+              <span id="camera-status-label">Initializing Hand Detector...</span>
+            </div>
+
+            <!-- Video & Canvas HUD -->
+            <div class="camera-stream-container">
+              <video id="webcam-video" autoplay playsinline muted></video>
+              <canvas id="camera-overlay-canvas"></canvas>
+              
+              <!-- Countdown HUD Overlay -->
+              <div id="countdown-hud" class="countdown-hud hide">
+                <div class="countdown-circle">
+                  <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" class="bg-circle"></circle>
+                    <circle cx="50" cy="50" r="45" class="fg-circle" id="countdown-progress-ring"></circle>
+                  </svg>
+                  <div class="countdown-number" id="countdown-hud-number">3</div>
+                </div>
+                <div class="countdown-label" id="countdown-hud-label">Locking Vote for Candidate 1...</div>
+              </div>
+            </div>
+
+            <!-- Detections info & Override options -->
+            <div class="camera-controls">
+              <div class="finger-count-display">
+                <span class="label">Detected Fingers:</span>
+                <span class="value" id="detected-fingers-value">0</span>
+              </div>
+              <div class="fallback-toggle-wrapper">
+                <button id="toggle-manual-vote-btn" class="btn btn-sm btn-outline">👋 Use Manual Tap Instead</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 7: 5-SECOND POSITION TRANSITION ==================== -->
+    <section id="screen-transition" class="screen hide">
+      <div class="transition-box animate-scale-up">
+        <div class="transition-icon">🗳️</div>
+        <h1 class="transition-title">Vote Registered!</h1>
+        <p class="transition-subtitle" id="transition-next-label">Preparing the ballot for the next position...</p>
+        
+        <div class="transition-circle-container">
+          <svg class="transition-progress-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" class="bg"></circle>
+            <circle cx="50" cy="50" r="44" class="fg" id="transition-progress-fill"></circle>
+          </svg>
+          <div class="transition-countdown-number" id="transition-timer-lbl">5</div>
+        </div>
+        
+        <div class="transition-tip">
+          <span>💡 Tip: Get ready to show your hand in front of the camera!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SCREEN 8: SUCCESS / CELEBRATION ==================== -->
+    <section id="screen-success" class="screen hide">
+      <div class="success-box animate-scale-up">
+        <div class="success-icon">🔔</div>
+        <h1 class="success-title">BEEEEEP!</h1>
+        <h2>All Votes Recorded!</h2>
+        <p class="success-subtitle">Good job! You have completed your civic duty today.</p>
+        
+        <div class="thank-you-card">
+          <p>Thank you for participating in school democracy!</p>
+          <div class="loading-bar">
+            <div class="loading-bar-fill" id="success-redirect-progress"></div>
+          </div>
+          <span class="redirect-hint">Next voter starting in a few seconds...</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== PRINT AREA (HIDDEN FROM LAYOUT) ==================== -->
+  <div id="print-results-area" class="print-results-area">
+    <!-- Dynamically populated certificate and layout when window.print() is called -->
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
