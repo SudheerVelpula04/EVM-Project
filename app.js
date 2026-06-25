@@ -41,6 +41,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const EMOJI_POOL = ["🦁", "🐯", "🐨", "🦅", "🦚", "🦋", "🦄", "🎸", "🎨", "⚽", "🏏", "🎯", "🚀", "🌟", "🍎", "🐼", "🦊", "🐬"];
+const MAX_CANDIDATES_PER_POSITION = 10;
 
 const state = {
   // Navigation Screens
@@ -556,6 +557,9 @@ function renderWizardCandidates() {
       candsHTML += `
         <div class="candidate-setup-row mt-4">
           <div class="candidate-number-badge">${candIdx + 1}</div>
+          <div class="candidate-photo-preview ${cand.photo ? 'has-photo' : ''}">
+            ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Candidate'} preview">` : `<span>${cand.symbol}</span>`}
+          </div>
           <input type="text" value="${cand.name}" placeholder="Name" onchange="updateWizardCandidateName('${pos}', ${candIdx}, this.value)">
           <input type="file" accept="image/*" onchange="updateWizardCandidatePhotoFile('${pos}', ${candIdx}, this)">
           <select onchange="updateWizardCandidateSymbol('${pos}', ${candIdx}, this.value)">
@@ -571,7 +575,7 @@ function renderWizardCandidates() {
       <div class="wizard-cands-list-setup">
         ${candsHTML}
       </div>
-      <button class="btn btn-sm btn-glass mt-4" onclick="addWizardCandidate('${pos}')" ${list.length >= 6 ? 'disabled' : ''}>+ Add Candidate</button>
+      <button class="btn btn-sm btn-glass mt-4" onclick="addWizardCandidate('${pos}')" ${list.length >= MAX_CANDIDATES_PER_POSITION ? 'disabled' : ''}>+ Add Candidate (Max ${MAX_CANDIDATES_PER_POSITION})</button>
     `;
     container.appendChild(card);
   });
@@ -610,7 +614,7 @@ window.updateWizardCandidatePhotoFile = (pos, candIdx, input) => {
 window.addWizardCandidate = (pos) => {
   if (!state.tempWizardCandidates[pos]) state.tempWizardCandidates[pos] = [];
   const list = state.tempWizardCandidates[pos];
-  if (list.length >= 6) return;
+  if (list.length >= MAX_CANDIDATES_PER_POSITION) return;
   
   const used = list.map(c => c.symbol);
   const nextSym = EMOJI_POOL.find(e => !used.includes(e)) || "👤";
@@ -773,7 +777,12 @@ function renderResults() {
           
           return `
             <div class="chart-row">
-              <span class="candidate-name-label">${cand.symbol} ${cand.name}</span>
+              <div class="candidate-result-info">
+                <div class="candidate-result-avatar ${cand.photo ? 'has-photo' : ''}">
+                  ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name}">` : `<span>${cand.symbol}</span>`}
+                </div>
+                <span class="candidate-name-label">${cand.name}</span>
+              </div>
               <div class="bar-wrapper">
                 <div class="bar-fill ${isCandWinner ? 'winner' : ''}" style="width: ${pct}%"></div>
               </div>
@@ -808,7 +817,7 @@ function renderSetupEditor() {
         <button class="btn btn-sm btn-danger btn-outline" onclick="deleteCategory(${catIdx})">🗑️ Delete Category</button>
       </div>
       <div class="candidates-list-setup" id="cand-list-setup-${catIdx}"></div>
-      <button class="btn btn-sm btn-glass" onclick="addCandidateToCategory(${catIdx})" ${category.candidates.length >= 6 ? 'disabled' : ''}>+ Add Participant (Max 6)</button>
+      <button class="btn btn-sm btn-glass" onclick="addCandidateToCategory(${catIdx})" ${category.candidates.length >= MAX_CANDIDATES_PER_POSITION ? 'disabled' : ''}>+ Add Participant (Max ${MAX_CANDIDATES_PER_POSITION})</button>
     `;
     container.appendChild(card);
     renderCandidatesSetupRows(catIdx);
@@ -835,6 +844,9 @@ function renderCandidatesSetupRows(catIdx) {
     
     row.innerHTML = `
       <div class="candidate-number-badge">${cand.count}</div>
+      <div class="candidate-photo-preview ${cand.photo ? 'has-photo' : ''}">
+        ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Participant'} preview">` : `<span>${cand.symbol}</span>`}
+      </div>
       <input type="text" value="${cand.name}" placeholder="Participant Name" onchange="updateCandidateName(${catIdx}, ${candIdx}, this.value)">
       <input type="file" accept="image/*" onchange="updateCandidatePhotoFile(${catIdx}, ${candIdx}, this)">
       <select onchange="updateCandidateSymbol(${catIdx}, ${candIdx}, this.value)">
@@ -875,7 +887,7 @@ window.updateCandidatePhotoFile = (catIdx, candIdx, input) => {
 
 window.addCandidateToCategory = (catIdx) => {
   const cat = state.categories[catIdx];
-  if (cat.candidates.length >= 6) return;
+  if (cat.candidates.length >= MAX_CANDIDATES_PER_POSITION) return;
   
   const usedSymbols = cat.candidates.map(c => c.symbol);
   const nextSymbol = EMOJI_POOL.find(emoji => !usedSymbols.includes(emoji)) || "👤";
