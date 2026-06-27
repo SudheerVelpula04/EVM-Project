@@ -1196,9 +1196,17 @@ document.getElementById("begin-voting-btn").addEventListener("click", () => {
 
 function startVotingFlow() {
   renderActiveCategoryScreen();
+  updateVotingLayoutMode();
   if (!state.isManualVote) {
     initWebcamAndHandTracking();
   }
+}
+
+function updateVotingLayoutMode() {
+  const layout = document.querySelector(".voting-layout");
+  if (!layout) return;
+
+  layout.classList.toggle("manual-mode", state.isManualVote);
 }
 
 function renderActiveCategoryScreen() {
@@ -1355,6 +1363,7 @@ function stopWebcam() {
 
 function switchToManualMode() {
   state.isManualVote = true;
+  updateVotingLayoutMode();
   stopWebcam();
   
   const toggleBtn = document.getElementById("toggle-manual-vote-btn");
@@ -1371,6 +1380,7 @@ function switchToManualMode() {
 document.getElementById("toggle-manual-vote-btn").addEventListener("click", () => {
   if (state.isManualVote) {
     state.isManualVote = false;
+    updateVotingLayoutMode();
     document.getElementById("toggle-manual-vote-btn").textContent = "👋 Use Manual Tap Instead";
     initWebcamAndHandTracking();
   } else {
@@ -1454,17 +1464,28 @@ function onHandDetections(results) {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  let rawDetectedFingers = 0;
-
-  if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    results.multiHandLandmarks.forEach((landmarks) => {
-      drawHandSkeleton(ctx, landmarks);
-      rawDetectedFingers += countOpenFingers(landmarks);
-    });
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    state.detectedFingers = 0;
+    document.getElementById("detected-fingers-value").textContent = "0";
+    resetCountdownState();
+    return;
   }
 
-  rawDetectedFingers = Math.min(rawDetectedFingers, 5);
+  if (results.multiHandLandmarks.length > 2) {
+    state.detectedFingers = 0;
+    document.getElementById("detected-fingers-value").textContent = "0";
+    resetCountdownState();
+    return;
+  }
 
+  let totalDetectedFingers = 0;
+
+  results.multiHandLandmarks.forEach((landmarks) => {
+    drawHandSkeleton(ctx, landmarks);
+    totalDetectedFingers += countOpenFingers(landmarks);
+  });
+
+  const rawDetectedFingers = Math.min(totalDetectedFingers, 10);
   const stableDetectedFingers = updateFingerStability(rawDetectedFingers);
   const displayCount = stableDetectedFingers !== null ? stableDetectedFingers : rawDetectedFingers;
 
@@ -1657,9 +1678,17 @@ function finalizeVoterSession() {
   state.votes.push(...state.temporarySessionVotes);
   localStorage.setItem("evm_votes", JSON.stringify(state.votes));
   
-  // Trigger long EVM electronic beep
+  // Show the completion/confirmation screen briefly, then return to the candidate voting screen
   playEvmVoteBeep();
+  state.currentCategoryIndex = 0;
+  state.temporarySessionVotes = [];
+  resetCountdownState();
   navigateTo("success");
+  setTimeout(() => {
+    if (state.activeScreen === "success") {
+      navigateTo("voting");
+    }
+  }, 5000);
   
   syncVotesWithSheets();
 }
@@ -1683,33 +1712,13 @@ function triggerCelebration() {
     }());
   }
 
-  const redirectDelayMs = 5000;
   const progressEl = document.getElementById("success-redirect-progress");
   const hintEl = document.querySelector(".redirect-hint");
 
-  let remainingMs = redirectDelayMs;
-
-  const updateCountdown = () => {
-    const progressPct = Math.max(0, Math.min(100, (remainingMs / redirectDelayMs) * 100));
-    if (progressEl) progressEl.style.width = `${progressPct}%`;
-
-    const secondsLeft = Math.max(1, Math.ceil(remainingMs / 1000));
-    if (hintEl) hintEl.textContent = `Next voter starting in ${secondsLeft} second${secondsLeft === 1 ? "" : "s"}...`;
-  };
-
-  updateCountdown();
-
-  const countdownInterval = setInterval(() => {
-    remainingMs -= 1000;
-    if (remainingMs <= 0) {
-      clearInterval(countdownInterval);
-      if (state.activeScreen === "success") {
-        navigateTo("welcome");
-      }
-      return;
-    }
-    updateCountdown();
-  }, 1000);
+  if (progressEl) progressEl.style.width = "100%";
+  if (hintEl) {
+    hintEl.textContent = "Voting completed. Please wait for the next session.";
+  }
 }
 
 /* =========================================================================

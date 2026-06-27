@@ -1219,6 +1219,54 @@ main#app-container {
   min-height: 680px;
 }
 
+.voting-layout.manual-mode {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.voting-layout.manual-mode .voting-camera-section {
+  display: block;
+}
+
+.voting-layout.manual-mode .camera-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  gap: 12px;
+}
+
+.voting-layout.manual-mode .camera-status {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.voting-layout.manual-mode .camera-stream-container {
+  display: none;
+}
+
+.voting-layout.manual-mode .camera-controls {
+  margin-top: 0;
+  padding-top: 0;
+  justify-content: flex-end;
+  min-width: 220px;
+}
+
+.voting-layout.manual-mode .finger-count-display {
+  display: none;
+}
+
+.voting-layout.manual-mode .voting-candidates-section {
+  min-height: calc(100vh - 180px);
+  padding: 24px;
+}
+
+.voting-layout.manual-mode .voting-candidates-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  align-content: start;
+}
+
 .voting-candidates-section {
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
