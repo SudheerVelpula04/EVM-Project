@@ -558,13 +558,10 @@ function renderWizardCandidates() {
         <div class="candidate-setup-row mt-4">
           <div class="candidate-number-badge">${candIdx + 1}</div>
           <div class="candidate-photo-preview ${cand.photo ? 'has-photo' : ''}">
-            ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Candidate'} preview">` : `<span>${cand.symbol}</span>`}
+            ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Candidate'} preview">` : ``}
           </div>
           <input type="text" value="${cand.name}" placeholder="Name" onchange="updateWizardCandidateName('${pos}', ${candIdx}, this.value)">
           <input type="file" accept="image/*" onchange="updateWizardCandidatePhotoFile('${pos}', ${candIdx}, this)">
-          <select onchange="updateWizardCandidateSymbol('${pos}', ${candIdx}, this.value)">
-            ${EMOJI_POOL.map(emoji => `<option value="${emoji}" ${emoji === cand.symbol ? 'selected' : ''}>${emoji}</option>`).join('')}
-          </select>
           <button class="btn-delete-row" onclick="deleteWizardCandidate('${pos}', ${candIdx})">×</button>
         </div>
       `;
@@ -779,7 +776,7 @@ function renderResults() {
             <div class="chart-row">
               <div class="candidate-result-info">
                 <div class="candidate-result-avatar ${cand.photo ? 'has-photo' : ''}">
-                  ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name}">` : `<span>${cand.symbol}</span>`}
+                  ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name}">` : ``}
                 </div>
                 <span class="candidate-name-label">${cand.name}</span>
               </div>
@@ -845,13 +842,10 @@ function renderCandidatesSetupRows(catIdx) {
     row.innerHTML = `
       <div class="candidate-number-badge">${cand.count}</div>
       <div class="candidate-photo-preview ${cand.photo ? 'has-photo' : ''}">
-        ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Participant'} preview">` : `<span>${cand.symbol}</span>`}
+        ${cand.photo ? `<img src="${cand.photo}" alt="${cand.name || 'Participant'} preview">` : ``}
       </div>
       <input type="text" value="${cand.name}" placeholder="Participant Name" onchange="updateCandidateName(${catIdx}, ${candIdx}, this.value)">
       <input type="file" accept="image/*" onchange="updateCandidatePhotoFile(${catIdx}, ${candIdx}, this)">
-      <select onchange="updateCandidateSymbol(${catIdx}, ${candIdx}, this.value)">
-        ${EMOJI_POOL.map(emoji => `<option value="${emoji}" ${emoji === cand.symbol ? 'selected' : ''}>${emoji}</option>`).join('')}
-      </select>
       <button class="btn-delete-row" onclick="deleteCandidate(${catIdx}, ${candIdx})">×</button>
     `;
     container.appendChild(row);
@@ -1777,7 +1771,7 @@ function getResultsTextSummary() {
     
     tallied.forEach(c => {
       const pct = catVotes.length > 0 ? Math.round((c.votes / catVotes.length) * 100) : 0;
-      summary += ` - ${c.symbol} ${c.name}: ${c.votes} votes (${pct}%)\n`;
+      summary += ` - ${c.name}: ${c.votes} votes (${pct}%)\n`;
     });
     
     if (catVotes.length > 0 && tallied[0].votes > (tallied[1]?.votes || 0)) {
@@ -1824,12 +1818,12 @@ function generatePrintLayout() {
       
       <div class="winner-announce-box">
         ${winner ? `
-          <div class="winner-avatar">${winner.symbol}</div>
+          <div class="winner-avatar">${winner.photo ? `<img src="${winner.photo}" alt="${winner.name}">` : ``}</div>
           <div class="winner-name">${winner.name}</div>
           <div class="winner-category-tag">Elected Winner</div>
           <div class="winner-meta">With a mandate of ${winner.count} votes (${Math.round((winner.count / totalCatVotes)*100)}% of total votes cast)</div>
         ` : `
-          <div class="winner-avatar">🤝</div>
+          <div class="winner-avatar"></div>
           <div class="winner-name">TIE / NO WINNER</div>
           <div class="winner-category-tag">Undecided Outcome</div>
           <div class="winner-meta">Total votes cast: ${totalCatVotes}</div>
@@ -1842,7 +1836,7 @@ function generatePrintLayout() {
           <tr>
             <th>Rank</th>
             <th>Candidate</th>
-            <th>Icon</th>
+            <th>Photo</th>
             <th>Votes Received</th>
             <th>Vote Percentage</th>
           </tr>
@@ -1852,7 +1846,7 @@ function generatePrintLayout() {
             <tr>
               <td>${idx + 1}</td>
               <td style="font-weight:bold;">${cand.name}</td>
-              <td style="font-size:1.5rem;">${cand.symbol}</td>
+              <td>${cand.photo ? `<img src="${cand.photo}" alt="${cand.name}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;">` : ``}</td>
               <td>${cand.count}</td>
               <td>${totalCatVotes > 0 ? Math.round((cand.count / totalCatVotes)*100) : 0}%</td>
             </tr>
